@@ -37,7 +37,7 @@ exports.orderProduct = async (req, res, next) => {
     await existingProduct.save();
 
     //   console.log("testing  ..... ", existingProduct)
-      const placedBy = req?.auth?.data?.userId
+      const placedBy = req?.auth?.data?.userId;
       
 
       console.log("placed by  ..... ", placedBy)
@@ -74,55 +74,8 @@ exports.orderProduct = async (req, res, next) => {
     }
   };
 
-  //get orders for admin ..........................
 
-  exports.getOrder = async (req, res, next) => {
-    try {
-        //   console.log("request body..... ", req.body);
-        //   console.log("user id..... ",  req?.auth);
-      
-          const { Order,Product,User } = req.db.models;
-      
-          const { RefId,placedBy } = req.query;
-    
-          let whereCondition = {};
-
-// console.log("Ref id..... ",  whereCondition.orderId); //RefId);
-
-          if (RefId) {
-            whereCondition.RefId = RefId;
-            // console.log("Ref id..... ",  whereCondition.RefId);
-        } else if (placedBy) {
-            whereCondition.placedBy = placedBy;
-
-            // console.log("placedBy ///..... ",  whereCondition.placedBy);
-        } else {
-            return res.status(400).send({ status: false, message: 'Please provide either refId or userId in the query parameters.' });
-        }
-
-        const orders = await Order.findAll({
-            where: whereCondition,
-            include: [
-                {
-                    model: Product,
-                    attributes: ['title', 'description', 'price'],
-                },
-                {
-                    model: User,
-                    attributes: ['fullName', 'email'],
-                },
-            ],
-        });
-
-        return res.status(200).send({ status: true, message: 'Orders retrieved successfully.', orders });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).send({ status: false, message: 'Error retrieving orders.', error: err });
-    }
-
-};
-
-// get order for user......................
+// get order ......................
 
 
 exports.getUserOrder = async (req, res, next) => {
@@ -130,17 +83,43 @@ exports.getUserOrder = async (req, res, next) => {
       
           const { Order,Product,User } = req.db.models;
       
-          const { placedBy } = req.query;
+        //   const { placedBy } = req.query;
+        // const { placedBy } = req.query;
+        const placedBy=req.auth.data.userId;
+          const roleId=req?.auth?.data?.roleId;
+          console.log("type of  role Id is ...... ", roleId)
 
-          if (!placedBy) {
-            return res.status(400).send({ status: false, message: 'Please provide a userId in the query parameters.' });
-        }
+        //   if (!placedBy) {
+        //     return res.status(400).send({ status: false, message: 'Please provide a userId in the query parameters.' });
+        // }
 
-        if (placedBy != req?.auth?.data?.userId) {
-            console.log("type", typeof(placedBy), typeof(req?.auth?.data?.userId))
+        // if (placedBy != req?.auth?.data?.userId) {
+            if(roleId==="admin"){
+                const orders = await Order.findAll({
+                    include: [
+                        {
+                            model: Product,
+                            attributes: ['title', 'description', 'price'],
+                        },
+                        {
+                            model: User,
+                            attributes: ['fullName', 'email'],
+                        },
+                    ],
+                });
+
+                console.log("admin is here")
+                return res.status(200).send({ status: true, message: 'Orders retrieved successfully by amin.',orders });
+
+            }
+
+            else if (placedBy != req?.auth?.data?.userId){
+            // console.log("type", typeof(placedBy), typeof(req?.auth?.data?.userId))
             console.log("Mismatched user IDs. placedBy:", placedBy, "authenticated user:", req?.auth?.data?.userId);
             return res.status(403).send({ status: false, message: "You are not authorized to view this order." });
-        }
+        
+            }
+        // }
 
 else{
 
@@ -157,6 +136,9 @@ else{
                 },
             ],
         });
+        if (orders.length === 0) {
+            return res.status(404).send({ status: false, message: 'No orders found for the specified user.' });
+            }
 
         return res.status(200).send({ status: true, message: 'Orders retrieved successfully.', orders });
 }
@@ -172,6 +154,7 @@ exports.deleteUserOrder = async (req,res)=>{
         const {Order} = req.db.models;
 
         const {refId} =req.body;
+        const roleId=req.auth.data.roleId;
 
         // console.log("refId is ...... ",refId)
 
@@ -190,39 +173,32 @@ exports.deleteUserOrder = async (req,res)=>{
         }
 
         if (orderToDelete.placedBy !== req?.auth?.data?.userId ){
-            console.log("type", typeof(orderToDelete.placedBy), typeof(req?.auth?.data?.userId))
-            return res.status(403).send({ status: false, message: "You are not authorized to delete this order." });
+            // console.log("type", typeof(orderToDelete.placedBy), typeof(req?.auth?.data?.userId))
+            if(roleId==="admin"){
+
+                orderToDelete.destroy()
+                return res.status(200).send({ status: true, message: "Order deleted successfully by admin." });
+                
+
+            }
+            else{
+
+                return res.status(403).send({ status: false, message: "You are not authorized to delete this order." });
+
+            }
+            
         }
         // await productToDelete.destroy();
 
-        await orderToDelete.destroy();
+        else{
+            await orderToDelete.destroy();
 
-        return res.status(200).send({ status: true, message: "Order deleted successfully." });
-
-
-    }
-    catch (err){
-        console.error(err);
-        return res.status(500).send({ status: false, message: "Error deleting product.", error: err });
-
-    }
-
-}
-
-exports.deleteAdminOrder = async(req,res)=>{
-    try{
-        const{Order} = req.db.models
-        const{refId}=req.body
-
-        const orderToDelete = await Order.findOne({where:{RefId:refId}});
-
-        if (!orderToDelete) {
-
-            return res.status(404).send({ status: false, message: "Order not found." });
+            return res.status(200).send({ status: true, message: "Order deleted successfully." });
             
         }
-        orderToDelete.destroy()
-        return res.status(200).send({ status: true, message: "Order deleted successfully." });
+
+        
+
 
     }
     catch (err){
@@ -230,4 +206,6 @@ exports.deleteAdminOrder = async(req,res)=>{
         return res.status(500).send({ status: false, message: "Error deleting product.", error: err });
 
     }
+
 }
+
