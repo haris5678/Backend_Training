@@ -19,14 +19,18 @@ exports.createProduct = async (req, res, next) => {
       const { Product } = req.db.models;
   
       // Extract product details from the request body
-      const { title, description, price } = req.body;
+      const { title, description, price,qty, } = req.body;
   
       // Extract the user ID of the authenticated user from the request
       const uploadedBy = req?.auth?.data?.userId;
   
       // Validate that required fields are present
-      if (!title || !price) {
-        return res.status(400).send({ status: false, message: "Title, price, and user information are required." });
+      if (!title || !price || !qty) {
+        return res.status(400).send({ status: false, message: "Title, price, and quantity are required." });
+      }
+      if(qty<0 || price<0){
+        return res.status(400).send({ status: false, message: "qty and price should be not less than 0." });
+
       }
   
       // Create a new product instance
@@ -34,6 +38,7 @@ exports.createProduct = async (req, res, next) => {
         title,
         description,
         price,
+        qty,
         uploadedBy,
       });
 

@@ -11,6 +11,7 @@ const app = express();
 const webRoutes = require("./routes/web");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
+const categoryRoutes = require("./routes/categoryRoute")
 const productRoutes = require("./routes/productRoute");
 const orderRoutes = require("./routes/orderRoute");
 const { sequelize } = require("./models");
@@ -50,11 +51,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/product", productRoutes);
 app.use("/api/order", orderRoutes);
+app.use("/api/category", categoryRoutes);
 
 sequelize
   // .sync({ force: true })
-  // .sync({ alter: true })
-  .sync()
+  .sync({ alter: true })
+  // .sync()
   .then(async () => {
     app.listen(process.env.PORT);
 

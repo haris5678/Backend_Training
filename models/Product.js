@@ -3,9 +3,10 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Product extends Model {
     static associate(models) {
-      const { User, Role } = models;
-      User.hasMany(Product, { foreignKey: "uploadedBy" });
-      Product.belongsTo(User, { foreignKey: "uploadedBy" });
+      Product.belongsToMany(models.Category, {
+        through: models.ProductCategory,
+        foreignKey: "productId",
+      });
 
       
 
@@ -28,12 +29,13 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false
       },
 
-      soldout: DataTypes.BOOLEAN
+      soldout: DataTypes.BOOLEAN,
 
-      //   createdBy: {
-      //     type: DataTypes.INTEGER,
-      //     allowNull: false
-      //   }
+        qty: {
+          type: DataTypes.INTEGER,
+          allowNull: false,
+          defaultValue: 0
+        }
 
       //   createdBy: {
       //     type: DataTypes.INTEGER,
